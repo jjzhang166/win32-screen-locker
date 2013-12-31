@@ -287,12 +287,62 @@ void OnTimer(HWND hWnd, WPARAM wParam, LPARAM lParam)
 
 void OnKeyDown(HWND hWnd, WPARAM wParam, LPARAM lParam)
 {
-    static char buf[5];
-    buf[4] = buf[3];
-    buf[3] = buf[2];
-    buf[2] = buf[1];
-    buf[1] = buf[0];
+    // Get password hash
+    HKEY hSoftwareKey;
+    char szPasswordHash[1024];
+    DWORD dwLen = 1024;
+    if (RegOpenKeyEx(HKEY_CURRENT_USER, "Software", 0, KEY_QUERY_VALUE, &hSoftwareKey) == 0)
+    {
+        if (RegGetValue(hSoftwareKey, "LockScreen", "Password", 
+            RRF_RT_REG_SZ, 0, szPasswordHash, &dwLen) != 0)
+        {
+            memset(szPasswordHash, 0, 1024);
+        }
+    }
+
+    // Update password
+    static char buf[32];
+    for (int i = 31; i > 0; i--)
+    {
+        buf[i] = buf[i - 1];
+    }
     buf[0] = (char)wParam;
+
+    // Verify with the SHA1 encrypted password stored in system registry
+    if (strlen(szPasswordHash) != 0)
+    {
+        for (int len = 1; len <= 32; len++)
+        {
+            // Reverse input
+            char password[32];
+            for (int i = 0; i < len; i++)
+            {
+                password[i] = buf[len - i - 1];
+            }
+
+            // Calculate hash
+            SHA1Context stContext;
+            uint8_t digest[SHA1HashSize];
+            char digestHex[41];
+
+            SHA1Reset(&stContext);
+            SHA1Input(&stContext, (uint8_t *)password, len);
+            SHA1Result(&stContext, digest);
+            sprintf_s(digestHex, 41, 
+                "%02X""%02X""%02X""%02X""%02X""%02X""%02X""%02X""%02X""%02X"
+                "%02X""%02X""%02X""%02X""%02X""%02X""%02X""%02X""%02X""%02X", 
+                digest[0], digest[1], digest[2], digest[3], digest[4],
+                digest[5], digest[6], digest[7], digest[8], digest[9],
+                digest[10], digest[11], digest[12], digest[13], digest[14],
+                digest[15], digest[16], digest[17], digest[18], digest[19]);
+
+            // Match
+            if (strcmp(digestHex, szPasswordHash) == 0)
+            {
+
+            }
+        }
+    }
 
     if (buf[4] == 'P' && buf[3] == 'U' && buf[2] == 'P' && buf[1] == 'P' && buf[0] == 'Y')
     {
