@@ -511,6 +511,16 @@ int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR lpCmdLine, int nCmdS
         "-i:\tLock screen immediately.\n"
         "-s:\tSecret mode (do not display tray icon).";
 
+    // Single Instance (Create a Named-Pipe)
+    HANDLE hPipe = CreateNamedPipe(TEXT("\\\\.\\pipe\\screenlock"), 
+        PIPE_ACCESS_DUPLEX | FILE_FLAG_FIRST_PIPE_INSTANCE, 0, 4, 1024, 1024, 1000, NULL);
+    if( hPipe == INVALID_HANDLE_VALUE )
+    {
+        MessageBox(0, TEXT("Screen Lock is still running.\nOnly one instance is allowed!"), 
+            TEXT("Error"), MB_OK | MB_ICONWARNING);
+        return 1;
+    }
+
     // Parse command-line parameters
     if (strcmp(lpCmdLine, "-h") == 0)
     {
