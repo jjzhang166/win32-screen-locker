@@ -1,5 +1,7 @@
+#include <stdio.h>
 #include <windows.h>
 #include "resource.h"
+#include "SHA1.h"
 
 #define WM_USER_TRAY (WM_USER + 1)
 
@@ -11,6 +13,195 @@ enum enumWindowState { Show, Hidden } g_enumWindowState;
 // Command-line options
 bool g_bHideImmediately = false;
 bool g_bSecretMode = false;
+
+// Set password dialog procedure
+INT_PTR CALLBACK ProcDlgSetPassword(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+    if (uMsg == WM_COMMAND)
+    {
+        if (wParam == IDOK)
+        {
+            char szPassword[1024];
+            char szConfirm[1024];
+            GetDlgItemText(hWnd, IDC_SET_PASSWORD, szPassword, 1024);
+            GetDlgItemText(hWnd, IDC_CONFIRM, szConfirm, 1024);
+
+            if (strcmp(szPassword, szConfirm) != 0)
+            {
+                MessageBox(hWnd, "Passwords do not match!", "Error", MB_OK | MB_ICONWARNING);
+                return TRUE;
+            }
+
+            // Open HKEY_CURRENT_USER\Software
+            HKEY hSoftwareKey;
+            if (RegOpenKeyEx(HKEY_CURRENT_USER, "Software", 
+                0, KEY_CREATE_SUB_KEY, &hSoftwareKey) != 0) // Key not exist
+            {
+                MessageBox(hWnd, "Cannot open HKEY_CURRENT_USER\\Software", 
+                    "Error", MB_OK | MB_ICONWARNING);
+                return TRUE;
+            }
+
+            // Create HKEY_CURRENT_USER\Software\ScreenLock
+            HKEY hScreenLockKey;
+            if (RegCreateKeyEx(hSoftwareKey, "ScreenLock", 
+                0, NULL, 0, KEY_SET_VALUE, NULL, &hScreenLockKey, NULL) != 0)
+            {
+                MessageBox(hWnd, "Cannot create HKEY_CURRENT_USER\\Software\\ScreenLock", 
+                    "Error", MB_OK | MB_ICONWARNING);
+                RegCloseKey(hSoftwareKey);
+                return TRUE;
+            }
+
+            // Calculate SHA1
+            SHA1Context stContext;
+            uint8_t digest[SHA1HashSize];
+            char digestHex[41];
+
+            SHA1Reset(&stContext);
+            SHA1Input(&stContext, (uint8_t *)szPassword, strlen(szPassword));
+            SHA1Result(&stContext, digest);
+            sprintf_s(digestHex, 41, 
+                "%02X""%02X""%02X""%02X""%02X""%02X""%02X""%02X""%02X""%02X"
+                "%02X""%02X""%02X""%02X""%02X""%02X""%02X""%02X""%02X""%02X", 
+                digest[0], digest[1], digest[2], digest[3], digest[4],
+                digest[5], digest[6], digest[7], digest[8], digest[9],
+                digest[10], digest[11], digest[12], digest[13], digest[14],
+                digest[15], digest[16], digest[17], digest[18], digest[19]);
+
+            // Create HKEY_CURRENT_USER\Software\ScreenLock\Password
+            if (RegSetValueEx(hScreenLockKey, "Password", 
+                0, REG_SZ, (BYTE *)digestHex, 41) != 0)
+            {
+                MessageBox(hWnd, "Cannot create registry value", 
+                    "Error", MB_OK | MB_ICONWARNING);
+                RegCloseKey(hScreenLockKey);
+                RegCloseKey(hSoftwareKey);
+                return TRUE;
+            }
+
+            EndDialog(hWnd, 0);
+            return TRUE;
+        }
+        else if (wParam == IDCANCEL)
+        {
+            EndDialog(hWnd, 0);
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
+// Modify password dialog procedure
+INT_PTR CALLBACK ProcDlgModifyPassword(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+    if (uMsg == WM_COMMAND)
+    {
+        if (wParam == IDOK)
+        {
+            char szOldPassword[1024];
+            char szNewPassword[1024];
+            char szNewConfirm[1024];
+            GetDlgItemText(hWnd, IDC_OLD_PASSWORD, szOldPassword, 1024);
+            GetDlgItemText(hWnd, IDC_NEW_PASSWORD, szNewPassword, 1024);
+            GetDlgItemText(hWnd, IDC_NEW_CONFIRM, szNewConfirm, 1024);
+
+            if (strcmp(szNewPassword, szNewConfirm) != 0)
+            {
+                MessageBox(hWnd, "New passwords do not match!", "Error", MB_OK | MB_ICONWARNING);
+                return TRUE;
+            }
+
+            // Open HKEY_CURRENT_USER\Software
+            HKEY hSoftwareKey;
+            if (RegOpenKeyEx(HKEY_CURRENT_USER, "Software", 
+                0, KEY_CREATE_SUB_KEY, &hSoftwareKey) != 0) // Key not exist
+            {
+                MessageBox(hWnd, "Cannot open HKEY_CURRENT_USER\\Software", 
+                    "Error", MB_OK | MB_ICONWARNING);
+                return TRUE;
+            }
+
+            // Create HKEY_CURRENT_USER\Software\ScreenLock
+            HKEY hScreenLockKey;
+            if (RegCreateKeyEx(hSoftwareKey, "ScreenLock", 
+                0, NULL, 0, KEY_SET_VALUE, NULL, &hScreenLockKey, NULL) != 0)
+            {
+                MessageBox(hWnd, "Cannot create HKEY_CURRENT_USER\\Software\\ScreenLock", 
+                    "Error", MB_OK | MB_ICONWARNING);
+                RegCloseKey(hSoftwareKey);
+                return TRUE;
+            }
+
+            // Calculate SHA1
+            SHA1Context stContext;
+            uint8_t digest[SHA1HashSize];
+            char oldDigestHex[41];
+            char newDigestHex[41];
+
+            SHA1Reset(&stContext);
+            SHA1Input(&stContext, (uint8_t *)szOldPassword, strlen(szOldPassword));
+            SHA1Result(&stContext, digest);
+            sprintf_s(oldDigestHex, 41, 
+                "%02X""%02X""%02X""%02X""%02X""%02X""%02X""%02X""%02X""%02X"
+                "%02X""%02X""%02X""%02X""%02X""%02X""%02X""%02X""%02X""%02X", 
+                digest[0], digest[1], digest[2], digest[3], digest[4],
+                digest[5], digest[6], digest[7], digest[8], digest[9],
+                digest[10], digest[11], digest[12], digest[13], digest[14],
+                digest[15], digest[16], digest[17], digest[18], digest[19]);
+
+            SHA1Reset(&stContext);
+            SHA1Input(&stContext, (uint8_t *)szNewPassword, strlen(szNewPassword));
+            SHA1Result(&stContext, digest);
+            sprintf_s(newDigestHex, 41, 
+                "%02X""%02X""%02X""%02X""%02X""%02X""%02X""%02X""%02X""%02X"
+                "%02X""%02X""%02X""%02X""%02X""%02X""%02X""%02X""%02X""%02X", 
+                digest[0], digest[1], digest[2], digest[3], digest[4],
+                digest[5], digest[6], digest[7], digest[8], digest[9],
+                digest[10], digest[11], digest[12], digest[13], digest[14],
+                digest[15], digest[16], digest[17], digest[18], digest[19]);
+
+            // Read HKEY_CURRENT_USER\Software\ScreenLock\Password
+            char oldHash[1024];
+            DWORD len = 1024;
+            if (RegGetValue(hScreenLockKey, 0, "Password", RRF_RT_REG_SZ, 0, oldHash, &len) != 0)
+            {
+                MessageBox(hWnd, "Cannot get registry value", 
+                    "Error", MB_OK | MB_ICONWARNING);
+                RegCloseKey(hScreenLockKey);
+                RegCloseKey(hSoftwareKey);
+                return TRUE;
+            }
+
+            if (strcmp(oldHash, oldDigestHex) != 0)
+            {
+                MessageBox(hWnd, "Password is not correct", 
+                    "Error", MB_OK | MB_ICONWARNING);
+                RegCloseKey(hScreenLockKey);
+                RegCloseKey(hSoftwareKey);
+                return TRUE;
+            }
+
+            if (RegSetValueEx(hScreenLockKey, "Password", 
+                0, REG_SZ, (BYTE *)newDigestHex, 41) != 0)
+            {
+                MessageBox(hWnd, "Cannot set registry value", 
+                    "Error", MB_OK | MB_ICONWARNING);
+                RegCloseKey(hScreenLockKey);
+                RegCloseKey(hSoftwareKey);
+                return TRUE;
+            }
+
+            EndDialog(hWnd, 0);
+            return TRUE;
+        }
+        else if (wParam == IDCANCEL)
+        {
+            EndDialog(hWnd, 0);
+        }
+    }
+    return FALSE;
+}
 
 // Message handlers
 void OnInitDialog(HWND hWnd, WPARAM wParam, LPARAM lParam)
@@ -128,7 +319,27 @@ void OnCommand(HWND hWnd, WPARAM wParam, LPARAM lParam)
     }
     else if (wParam == IDM_SET_PASSWORD)
     {
-
+        // 1. If HKCU\Software\ScreenLock does not exist, display the set password window
+        // 2. If HKCU\Software\ScreenLock\Password does not exist, display the set password window
+        // 3. Otherwise, display the modify password window
+        HKEY hScreenLockKey;
+        if (RegOpenKeyEx(HKEY_CURRENT_USER, "Software\\ScreenLock", 
+            0, KEY_QUERY_VALUE, &hScreenLockKey) != 0) // Key not exist
+        {
+            RegCloseKey(hScreenLockKey);
+            DialogBoxParam(g_hInstance, "DLG_SET_PASSWORD", hWnd, ProcDlgSetPassword, 0);
+        }
+        else if (RegGetValue(hScreenLockKey, 0, "Password", 
+            RRF_RT_REG_SZ, 0, 0, 0) != 0) // Value not exist
+        {
+            RegCloseKey(hScreenLockKey);
+            DialogBoxParam(g_hInstance, "DLG_SET_PASSWORD", hWnd, ProcDlgSetPassword, 0);
+        }
+        else
+        {
+            DialogBoxParam(g_hInstance, "DLG_MODIFY_PASSWORD", hWnd, ProcDlgSetPassword, 0);
+        }
+        
     }
     else if (wParam == IDM_EXIT)
     {
@@ -159,11 +370,11 @@ void OnUserTray(HWND hWnd, WPARAM wParam, LPARAM lParam)
     }
 }
 
-// Dialog procedure
+#define PROCESS_MSG(MSG,HANDLER) if(uMsg == MSG) { HANDLER(hWnd, wParam, lParam); return TRUE; }
+
+// Main dialog procedure
 INT_PTR CALLBACK ProcDlgMain(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    #define PROCESS_MSG(MSG,HANDLER) if(uMsg == MSG) { HANDLER(hWnd, wParam, lParam); return TRUE; }
-
     PROCESS_MSG(WM_INITDIALOG, OnInitDialog) // Init
     PROCESS_MSG(WM_PAINT,      OnPaint)
     PROCESS_MSG(WM_TIMER,      OnTimer)
@@ -172,10 +383,10 @@ INT_PTR CALLBACK ProcDlgMain(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     PROCESS_MSG(WM_COMMAND,    OnCommand)
     PROCESS_MSG(WM_USER_TRAY,  OnUserTray) // Tray icon messages
 
-    #undef PROCESS_MSG
-
     return FALSE;
 }
+
+#undef PROCESS_MSG
 
 // WinMain
 int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR lpCmdLine, int nCmdShow)
