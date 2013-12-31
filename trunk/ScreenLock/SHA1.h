@@ -17,6 +17,10 @@
 #ifndef _SHA1_H_
 #define _SHA1_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef _MSC_VER
     typedef unsigned __int32 uint32_t;
     typedef unsigned char    uint8_t;
@@ -76,6 +80,10 @@ int SHA1Input(  SHA1Context *,
                 unsigned int);
 int SHA1Result( SHA1Context *,
                 uint8_t Message_Digest[SHA1HashSize]);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 
