@@ -20,6 +20,7 @@ IDM_TRAY MENU
     {
         MENUITEM "Lock Now", IDM_LOCK_NOW
         MENUITEM "Set Password", IDM_SET_PASSWORD
+        MENUITEM SEPARATOR
         MENUITEM "Exit", IDM_EXIT
     }
 }
