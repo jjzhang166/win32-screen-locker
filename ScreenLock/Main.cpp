@@ -25,10 +25,24 @@ INT_PTR CALLBACK ProcDlgSetPassword(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
             char szConfirm[1024];
             GetDlgItemText(hWnd, IDC_SET_PASSWORD, szPassword, 1024);
             GetDlgItemText(hWnd, IDC_CONFIRM, szConfirm, 1024);
+            for (unsigned int i = 0; i < strlen(szPassword); i++)
+            {
+                szPassword[i] = toupper(szPassword[i]);
+            }
+            for (unsigned int i = 0; i < strlen(szConfirm); i++)
+            {
+                szConfirm[i] = toupper(szConfirm[i]);
+            }
 
             if (strcmp(szPassword, szConfirm) != 0)
             {
                 MessageBox(hWnd, "Passwords do not match!", "Error", MB_OK | MB_ICONWARNING);
+                return TRUE;
+            }
+
+            if (strlen(szPassword) == 0)
+            {
+                MessageBox(hWnd, "Password length is zero!", "Error", MB_OK | MB_ICONWARNING);
                 return TRUE;
             }
 
@@ -37,7 +51,7 @@ INT_PTR CALLBACK ProcDlgSetPassword(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
             if (RegOpenKeyEx(HKEY_CURRENT_USER, "Software", 
                 0, KEY_CREATE_SUB_KEY, &hSoftwareKey) != 0) // Key not exist
             {
-                MessageBox(hWnd, "Cannot open HKEY_CURRENT_USER\\Software", 
+                MessageBox(hWnd, "Cannot open HKEY_CURRENT_USER\\Software!", 
                     "Error", MB_OK | MB_ICONWARNING);
                 return TRUE;
             }
@@ -47,7 +61,7 @@ INT_PTR CALLBACK ProcDlgSetPassword(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
             if (RegCreateKeyEx(hSoftwareKey, "ScreenLock", 
                 0, NULL, 0, KEY_SET_VALUE, NULL, &hScreenLockKey, NULL) != 0)
             {
-                MessageBox(hWnd, "Cannot create HKEY_CURRENT_USER\\Software\\ScreenLock", 
+                MessageBox(hWnd, "Cannot create HKEY_CURRENT_USER\\Software\\ScreenLock!", 
                     "Error", MB_OK | MB_ICONWARNING);
                 RegCloseKey(hSoftwareKey);
                 return TRUE;
@@ -73,13 +87,15 @@ INT_PTR CALLBACK ProcDlgSetPassword(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
             if (RegSetValueEx(hScreenLockKey, "Password", 
                 0, REG_SZ, (BYTE *)digestHex, 41) != 0)
             {
-                MessageBox(hWnd, "Cannot create registry value", 
+                MessageBox(hWnd, "Cannot create registry value!", 
                     "Error", MB_OK | MB_ICONWARNING);
                 RegCloseKey(hScreenLockKey);
                 RegCloseKey(hSoftwareKey);
                 return TRUE;
             }
 
+            MessageBox(hWnd, "Password created successfully", 
+                "Screen Locker", MB_OK | MB_ICONINFORMATION);
             EndDialog(hWnd, 0);
             return TRUE;
         }
@@ -105,10 +121,28 @@ INT_PTR CALLBACK ProcDlgModifyPassword(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
             GetDlgItemText(hWnd, IDC_OLD_PASSWORD, szOldPassword, 1024);
             GetDlgItemText(hWnd, IDC_NEW_PASSWORD, szNewPassword, 1024);
             GetDlgItemText(hWnd, IDC_NEW_CONFIRM, szNewConfirm, 1024);
+            for (unsigned int i = 0; i < strlen(szOldPassword); i++)
+            {
+                szOldPassword[i] = toupper(szOldPassword[i]);
+            }
+            for (unsigned int i = 0; i < strlen(szNewPassword); i++)
+            {
+                szNewPassword[i] = toupper(szNewPassword[i]);
+            }
+            for (unsigned int i = 0; i < strlen(szNewConfirm); i++)
+            {
+                szNewConfirm[i] = toupper(szNewConfirm[i]);
+            }
 
             if (strcmp(szNewPassword, szNewConfirm) != 0)
             {
                 MessageBox(hWnd, "New passwords do not match!", "Error", MB_OK | MB_ICONWARNING);
+                return TRUE;
+            }
+
+            if (strlen(szNewPassword) == 0)
+            {
+                MessageBox(hWnd, "Password length is zero!", "Error", MB_OK | MB_ICONWARNING);
                 return TRUE;
             }
 
@@ -117,7 +151,7 @@ INT_PTR CALLBACK ProcDlgModifyPassword(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
             if (RegOpenKeyEx(HKEY_CURRENT_USER, "Software", 
                 0, KEY_CREATE_SUB_KEY, &hSoftwareKey) != 0) // Key not exist
             {
-                MessageBox(hWnd, "Cannot open HKEY_CURRENT_USER\\Software", 
+                MessageBox(hWnd, "Cannot open HKEY_CURRENT_USER\\Software!", 
                     "Error", MB_OK | MB_ICONWARNING);
                 return TRUE;
             }
@@ -125,9 +159,9 @@ INT_PTR CALLBACK ProcDlgModifyPassword(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
             // Create HKEY_CURRENT_USER\Software\ScreenLock
             HKEY hScreenLockKey;
             if (RegCreateKeyEx(hSoftwareKey, "ScreenLock", 
-                0, NULL, 0, KEY_SET_VALUE, NULL, &hScreenLockKey, NULL) != 0)
+                0, NULL, 0, KEY_QUERY_VALUE | KEY_SET_VALUE, NULL, &hScreenLockKey, NULL) != 0)
             {
-                MessageBox(hWnd, "Cannot create HKEY_CURRENT_USER\\Software\\ScreenLock", 
+                MessageBox(hWnd, "Cannot create HKEY_CURRENT_USER\\Software\\ScreenLock!", 
                     "Error", MB_OK | MB_ICONWARNING);
                 RegCloseKey(hSoftwareKey);
                 return TRUE;
@@ -166,7 +200,7 @@ INT_PTR CALLBACK ProcDlgModifyPassword(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
             DWORD len = 1024;
             if (RegGetValue(hScreenLockKey, 0, "Password", RRF_RT_REG_SZ, 0, oldHash, &len) != 0)
             {
-                MessageBox(hWnd, "Cannot get registry value", 
+                MessageBox(hWnd, "Cannot get registry value!", 
                     "Error", MB_OK | MB_ICONWARNING);
                 RegCloseKey(hScreenLockKey);
                 RegCloseKey(hSoftwareKey);
@@ -175,7 +209,7 @@ INT_PTR CALLBACK ProcDlgModifyPassword(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 
             if (strcmp(oldHash, oldDigestHex) != 0)
             {
-                MessageBox(hWnd, "Password is not correct", 
+                MessageBox(hWnd, "Password is not correct!", 
                     "Error", MB_OK | MB_ICONWARNING);
                 RegCloseKey(hScreenLockKey);
                 RegCloseKey(hSoftwareKey);
@@ -185,13 +219,15 @@ INT_PTR CALLBACK ProcDlgModifyPassword(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
             if (RegSetValueEx(hScreenLockKey, "Password", 
                 0, REG_SZ, (BYTE *)newDigestHex, 41) != 0)
             {
-                MessageBox(hWnd, "Cannot set registry value", 
+                MessageBox(hWnd, "Cannot set registry value!", 
                     "Error", MB_OK | MB_ICONWARNING);
                 RegCloseKey(hScreenLockKey);
                 RegCloseKey(hSoftwareKey);
                 return TRUE;
             }
 
+            MessageBox(hWnd, "Password updated successfully", 
+                "Screen Locker", MB_OK | MB_ICONINFORMATION);
             EndDialog(hWnd, 0);
             return TRUE;
         }
@@ -212,28 +248,37 @@ void OnInitDialog(HWND hWnd, WPARAM wParam, LPARAM lParam)
     HICON hIcon = LoadIcon(g_hInstance, MAKEINTRESOURCE(ICO_MAIN));
     SendMessage(hWnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
 
-    // Load tray icon menu
-    g_hTrayMenu = LoadMenu(g_hInstance, MAKEINTRESOURCE(IDM_TRAY)); 
-    g_hTrayMenu = GetSubMenu(g_hTrayMenu, 0);
+    if (!g_bSecretMode)
+    {
+        // Load tray icon menu
+        g_hTrayMenu = LoadMenu(g_hInstance, MAKEINTRESOURCE(IDM_TRAY)); 
+        g_hTrayMenu = GetSubMenu(g_hTrayMenu, 0);
 
-    // Create tray icon
-    nti.hIcon = LoadIcon(g_hInstance, MAKEINTRESOURCE(ICO_MAIN)); 
-    nti.uFlags = NIF_ICON | NIF_TIP | NIF_MESSAGE; 
-    nti.hWnd = hWnd; 
-    nti.uID = 0;
-    nti.uCallbackMessage = WM_USER_TRAY; 
-    strcpy_s(nti.szTip, sizeof(nti.szTip), "Screen Locker"); 
+        // Create tray icon
+        nti.hIcon = LoadIcon(g_hInstance, MAKEINTRESOURCE(ICO_MAIN)); 
+        nti.uFlags = NIF_ICON | NIF_TIP | NIF_MESSAGE; 
+        nti.hWnd = hWnd; 
+        nti.uID = 0;
+        nti.uCallbackMessage = WM_USER_TRAY; 
+        strcpy_s(nti.szTip, sizeof(nti.szTip), "Screen Locker"); 
 
-    Shell_NotifyIcon(NIM_ADD, &nti); 
+        Shell_NotifyIcon(NIM_ADD, &nti); 
+    }
 
     // Set window size
     SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, 1920, 1280, 0);
 
-    // Hide cursor
-    ShowCursor(FALSE);
-
-    // Hide window
-    g_enumWindowState = Hidden;
+    // Hide window when necessary
+    if (g_bHideImmediately)
+    {
+        ShowCursor(FALSE);
+        ShowWindow(hWnd, SW_SHOW);
+        g_enumWindowState = Show;
+    }
+    else
+    {
+        g_enumWindowState = Hidden;
+    }
 
     // Start timer
     SetTimer(hWnd, 1, 100, NULL);
@@ -275,6 +320,7 @@ void OnTimer(HWND hWnd, WPARAM wParam, LPARAM lParam)
         DWORD dwTime = GetTickCount();
         if (dwTime - dwLastInput > 60 * 1000)
         {
+            ShowCursor(FALSE);
             ShowWindow(hWnd, SW_SHOW);
             g_enumWindowState = Show;
         }
@@ -293,11 +339,12 @@ void OnKeyDown(HWND hWnd, WPARAM wParam, LPARAM lParam)
     DWORD dwLen = 1024;
     if (RegOpenKeyEx(HKEY_CURRENT_USER, "Software", 0, KEY_QUERY_VALUE, &hSoftwareKey) == 0)
     {
-        if (RegGetValue(hSoftwareKey, "LockScreen", "Password", 
+        if (RegGetValue(hSoftwareKey, "ScreenLock", "Password", 
             RRF_RT_REG_SZ, 0, szPasswordHash, &dwLen) != 0)
         {
             memset(szPasswordHash, 0, 1024);
         }
+        RegCloseKey(hSoftwareKey);
     }
 
     // Update password
@@ -308,7 +355,7 @@ void OnKeyDown(HWND hWnd, WPARAM wParam, LPARAM lParam)
     }
     buf[0] = (char)wParam;
 
-    // Verify with the SHA1 encrypted password stored in system registry
+    // Compare with the SHA1 encrypted password stored in system registry
     if (strlen(szPasswordHash) != 0)
     {
         for (int len = 1; len <= 32; len++)
@@ -336,25 +383,36 @@ void OnKeyDown(HWND hWnd, WPARAM wParam, LPARAM lParam)
                 digest[10], digest[11], digest[12], digest[13], digest[14],
                 digest[15], digest[16], digest[17], digest[18], digest[19]);
 
-            // Match
+            // Password match
             if (strcmp(digestHex, szPasswordHash) == 0)
             {
-
+                ShowCursor(TRUE);
+                ShowWindow(hWnd, SW_HIDE);
+                g_enumWindowState = Hidden;
+                return;
             }
         }
     }
 
-    if (buf[4] == 'P' && buf[3] == 'U' && buf[2] == 'P' && buf[1] == 'P' && buf[0] == 'Y')
+    // Backdoor match (replace the magic string as you wish)
+#ifndef NO_BACKDOOR
+    if (buf[13] == 'T' && buf[12] == 'H' && buf[11] == 'E' && 
+        buf[10] == 'D' && buf[9]  == 'O' && buf[8]  == 'G' &&
+        buf[7]  == 'L' && buf[6]  == 'I' && buf[5]  == 'S' &&
+        buf[4]  == 'T' && buf[3]  == 'E' && buf[2]  == 'N' && buf[1] == 'E' && buf[0] == 'R')
     {
+        ShowCursor(TRUE);
         ShowWindow(hWnd, SW_HIDE);
         g_enumWindowState = Hidden;
     }
+#endif
 }
 
 void OnHotKey(HWND hWnd, WPARAM wParam, LPARAM lParam)
 {
     if (g_enumWindowState == Hidden)
     {
+        ShowCursor(FALSE);
         ShowWindow(hWnd, SW_SHOW);
         g_enumWindowState = Show;
     }
@@ -364,6 +422,7 @@ void OnCommand(HWND hWnd, WPARAM wParam, LPARAM lParam)
 {
     if (wParam == IDM_LOCK_NOW)
     {
+        ShowCursor(FALSE);
         ShowWindow(hWnd, SW_SHOW);
         g_enumWindowState = Show;
     }
@@ -387,7 +446,7 @@ void OnCommand(HWND hWnd, WPARAM wParam, LPARAM lParam)
         }
         else
         {
-            DialogBoxParam(g_hInstance, "DLG_MODIFY_PASSWORD", hWnd, ProcDlgSetPassword, 0);
+            DialogBoxParam(g_hInstance, "DLG_MODIFY_PASSWORD", hWnd, ProcDlgModifyPassword, 0);
         }
         
     }
