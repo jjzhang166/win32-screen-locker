@@ -9,7 +9,9 @@
 #define IDM_DISABLE                             40001
 #define IDM_SET_PASSWORD                        40002
 #define IDC_SET_PASSWORD                        40003
-#define IDM_EXIT                                40004
-#define IDC_CONFIRM                             40005
-#define IDC_NEW_PASSWORD                        40006
-#define IDC_NEW_CONFIRM                         40007
+#define IDM_SET_TIMEOUT                         40004
+#define IDC_SET_TIMEOUT                         40005
+#define IDM_EXIT                                40006
+#define IDC_CONFIRM                             40007
+#define IDC_NEW_PASSWORD                        40008
+#define IDC_NEW_CONFIRM                         40009
