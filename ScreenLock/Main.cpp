@@ -16,6 +16,7 @@ bool g_bSecretMode = false;
 
 // Global state
 bool g_bDisableAutoLock = false;
+unsigned int g_uTimeout = 60;
 
 // Set password dialog procedure
 INT_PTR CALLBACK ProcDlgSetPassword(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -242,6 +243,90 @@ INT_PTR CALLBACK ProcDlgModifyPassword(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
     return FALSE;
 }
 
+// Modify password dialog procedure
+INT_PTR CALLBACK ProcDlgSetTimeout(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+    if (uMsg == WM_INITDIALOG)
+    {
+        HKEY hSoftwareKey;
+        DWORD dwTimeout = 60;
+        DWORD dwLen = sizeof(dwTimeout);
+
+        if (RegOpenKeyEx(HKEY_CURRENT_USER, "Software", 0, KEY_QUERY_VALUE, &hSoftwareKey) == 0)
+        {
+            if (RegGetValue(hSoftwareKey, "ScreenLock", "Timeout", 
+                RRF_RT_REG_DWORD, 0, &dwTimeout, &dwLen) != 0)
+            {
+                dwTimeout = 60; // Default is one minute
+            }
+            else
+            {
+                dwTimeout = max(30, min(3600, dwTimeout));
+            }
+            RegCloseKey(hSoftwareKey);
+        }
+
+        SetDlgItemInt(hWnd, IDC_SET_TIMEOUT, dwTimeout, FALSE);
+    }
+    if (uMsg == WM_COMMAND)
+    {
+        if (wParam == IDOK)
+        {
+            // Check range
+            DWORD dwTimeout = GetDlgItemInt(hWnd, IDC_SET_TIMEOUT, NULL, FALSE);
+            if (dwTimeout < 30 || dwTimeout > 3600)
+            {
+                MessageBox(hWnd, "Timeout should be between 30 and 3600 seconds!", 
+                    "Error", MB_OK | MB_ICONWARNING);
+                return TRUE;
+            }
+
+            // Open HKEY_CURRENT_USER\Software
+            HKEY hSoftwareKey;
+            if (RegOpenKeyEx(HKEY_CURRENT_USER, "Software", 
+                0, KEY_CREATE_SUB_KEY, &hSoftwareKey) != 0) // Key not exist
+            {
+                MessageBox(hWnd, "Cannot open HKEY_CURRENT_USER\\Software!", 
+                    "Error", MB_OK | MB_ICONWARNING);
+                return TRUE;
+            }
+
+            // Create HKEY_CURRENT_USER\Software\ScreenLock
+            HKEY hScreenLockKey;
+            if (RegCreateKeyEx(hSoftwareKey, "ScreenLock", 
+                0, NULL, 0, KEY_SET_VALUE, NULL, &hScreenLockKey, NULL) != 0)
+            {
+                MessageBox(hWnd, "Cannot create HKEY_CURRENT_USER\\Software\\ScreenLock!", 
+                    "Error", MB_OK | MB_ICONWARNING);
+                RegCloseKey(hSoftwareKey);
+                return TRUE;
+            }
+
+            // Create HKEY_CURRENT_USER\Software\ScreenLock\Timeout
+            if (RegSetValueEx(hScreenLockKey, "Timeout", 
+                0, REG_DWORD, (BYTE *)&dwTimeout, sizeof(dwTimeout)) != 0)
+            {
+                MessageBox(hWnd, "Cannot create registry value!", 
+                    "Error", MB_OK | MB_ICONWARNING);
+                RegCloseKey(hScreenLockKey);
+                RegCloseKey(hSoftwareKey);
+                return TRUE;
+            }
+
+            g_uTimeout = dwTimeout;
+            MessageBox(hWnd, "Timeout updated successfully", 
+                "Screen Locker", MB_OK | MB_ICONINFORMATION);
+            EndDialog(hWnd, 0);
+            return TRUE;
+        }
+        else if (wParam == IDCANCEL)
+        {
+            EndDialog(hWnd, 0);
+        }
+    }
+    return FALSE;
+}
+
 // Message handlers
 void OnInitDialog(HWND hWnd, WPARAM wParam, LPARAM lParam)
 {
@@ -283,6 +368,24 @@ void OnInitDialog(HWND hWnd, WPARAM wParam, LPARAM lParam)
         g_enumWindowState = Hidden;
     }
 
+    // Set timeout when available
+    HKEY hSoftwareKey;
+    if (RegOpenKeyEx(HKEY_CURRENT_USER, "Software", 0, KEY_QUERY_VALUE, &hSoftwareKey) == 0)
+    {
+        DWORD dwTimeout = 60;
+        DWORD dwLen = sizeof(dwTimeout);
+
+        if (RegGetValue(hSoftwareKey, "ScreenLock", "Timeout", 
+            RRF_RT_REG_DWORD, 0, &dwTimeout, &dwLen) != 0)
+        {
+            g_uTimeout = 60; // Default is one minute
+        }
+        else
+        {
+            g_uTimeout = max(30, min(3600, dwTimeout));
+        }
+    }
+
     // Start timer
     SetTimer(hWnd, 1, 100, NULL);
 
@@ -321,7 +424,7 @@ void OnTimer(HWND hWnd, WPARAM wParam, LPARAM lParam)
 
         // Display window when it's idle for one minute
         DWORD dwTime = GetTickCount();
-        if (dwTime - dwLastInput > 60 * 1000 && !g_bDisableAutoLock)
+        if (dwTime - dwLastInput > g_uTimeout * 1000 && !g_bDisableAutoLock)
         {
             ShowCursor(FALSE);
             ShowWindow(hWnd, SW_SHOW);
@@ -457,7 +560,10 @@ void OnCommand(HWND hWnd, WPARAM wParam, LPARAM lParam)
         {
             DialogBoxParam(g_hInstance, "DLG_MODIFY_PASSWORD", hWnd, ProcDlgModifyPassword, 0);
         }
-        
+    }
+    else if (wParam == IDM_SET_TIMEOUT)
+    {
+        DialogBoxParam(g_hInstance, "DLG_SET_TIMEOUT", hWnd, ProcDlgSetTimeout, 0);
     }
     else if (wParam == IDM_EXIT)
     {
