@@ -14,6 +14,9 @@ enum enumWindowState { Show, Hidden } g_enumWindowState;
 bool g_bHideImmediately = false;
 bool g_bSecretMode = false;
 
+// Global state
+bool g_bDisableAutoLock = false;
+
 // Set password dialog procedure
 INT_PTR CALLBACK ProcDlgSetPassword(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -318,7 +321,7 @@ void OnTimer(HWND hWnd, WPARAM wParam, LPARAM lParam)
 
         // Display window when it's idle for one minute
         DWORD dwTime = GetTickCount();
-        if (dwTime - dwLastInput > 60 * 1000)
+        if (dwTime - dwLastInput > 60 * 1000 && !g_bDisableAutoLock)
         {
             ShowCursor(FALSE);
             ShowWindow(hWnd, SW_SHOW);
@@ -425,6 +428,12 @@ void OnCommand(HWND hWnd, WPARAM wParam, LPARAM lParam)
         ShowCursor(FALSE);
         ShowWindow(hWnd, SW_SHOW);
         g_enumWindowState = Show;
+    }
+    if (wParam == IDM_DISABLE)
+    {
+        CheckMenuItem(g_hTrayMenu, IDM_DISABLE, MF_BYCOMMAND | 
+            (!g_bDisableAutoLock ? MF_CHECKED : MF_UNCHECKED));
+        g_bDisableAutoLock = !g_bDisableAutoLock;
     }
     else if (wParam == IDM_SET_PASSWORD)
     {

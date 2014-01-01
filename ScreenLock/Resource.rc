@@ -19,6 +19,8 @@ IDM_TRAY MENU
     POPUP "Tray"
     {
         MENUITEM "Lock Now", IDM_LOCK_NOW
+        MENUITEM "Disable Auto Lock", IDM_DISABLE
+        MENUITEM SEPARATOR
         MENUITEM "Set Password", IDM_SET_PASSWORD
         MENUITEM SEPARATOR
         MENUITEM "Exit", IDM_EXIT
