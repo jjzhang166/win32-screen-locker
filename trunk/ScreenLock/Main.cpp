@@ -360,6 +360,7 @@ void OnInitDialog(HWND hWnd, WPARAM wParam, LPARAM lParam)
     if (g_bHideImmediately)
     {
         ShowCursor(FALSE);
+        SetForegroundWindow(hWnd);
         ShowWindow(hWnd, SW_SHOW);
         g_enumWindowState = Show;
     }
@@ -427,6 +428,7 @@ void OnTimer(HWND hWnd, WPARAM wParam, LPARAM lParam)
         if (dwTime - dwLastInput > g_uTimeout * 1000 && !g_bDisableAutoLock)
         {
             ShowCursor(FALSE);
+            SetForegroundWindow(hWnd);
             ShowWindow(hWnd, SW_SHOW);
             g_enumWindowState = Show;
         }
@@ -519,6 +521,7 @@ void OnHotKey(HWND hWnd, WPARAM wParam, LPARAM lParam)
     if (g_enumWindowState == Hidden)
     {
         ShowCursor(FALSE);
+        SetForegroundWindow(hWnd);
         ShowWindow(hWnd, SW_SHOW);
         g_enumWindowState = Show;
     }
