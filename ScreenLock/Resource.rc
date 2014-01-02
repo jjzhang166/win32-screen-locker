@@ -100,7 +100,7 @@ ICO_MAIN           ICON           ".\\Icon.ico"
 //
 LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 1 VERSIONINFO
-    FILEVERSION     1,0,0,0
+    FILEVERSION     1,0,1,0
     PRODUCTVERSION  0,0,0,0
     FILEOS          VOS__WINDOWS32
     FILETYPE        VFT_APP
@@ -113,9 +113,9 @@ LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
         BLOCK "040904E4"
         {
             VALUE "FileDescription", "Screen Locker App by F32"
-            VALUE "LegalCopyright", "Copyright (C) 2013 F32"
+            VALUE "LegalCopyright", "Copyright (C) 2013 - 2014 F32"
             VALUE "ProductName", "LockScreen"
-            VALUE "ProductVersion", "1.0.0"
+            VALUE "ProductVersion", "1.0.1"
         }
     }
     BLOCK "VarFileInfo"
