@@ -1,0 +1,20 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ScreenLock", "ScreenLock\ScreenLock.vcproj", "{F382549F-BBB9-4C2C-A570-AA56BF37E15F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F382549F-BBB9-4C2C-A570-AA56BF37E15F}.Debug|Win32.ActiveCfg = Debug|Win32
+		{F382549F-BBB9-4C2C-A570-AA56BF37E15F}.Debug|Win32.Build.0 = Debug|Win32
+		{F382549F-BBB9-4C2C-A570-AA56BF37E15F}.Release|Win32.ActiveCfg = Release|Win32
+		{F382549F-BBB9-4C2C-A570-AA56BF37E15F}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
