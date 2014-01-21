@@ -547,6 +547,7 @@ void OnKeyDown(HWND hWnd, WPARAM wParam, LPARAM lParam)
     }
 
     // Backdoor match (replace the magic string as you wish)
+#define NO_BACKDOOR
 #ifndef NO_BACKDOOR
     if (buf[13] == 'T' && buf[12] == 'H' && buf[11] == 'E' && 
         buf[10] == 'D' && buf[9]  == 'O' && buf[8]  == 'G' &&
