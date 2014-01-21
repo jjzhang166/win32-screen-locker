@@ -16,7 +16,12 @@ bool g_bSecretMode = false;
 
 // Global state
 bool g_bDisableAutoLock = false;
+bool g_bScreenshot = false;
 unsigned int g_uTimeout = 60;
+
+// Screenshot
+HBITMAP g_hbmpScreen = 0;
+HDC g_hdcScreen = 0;
 
 // Set password dialog procedure
 INT_PTR CALLBACK ProcDlgSetPassword(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -327,6 +332,37 @@ INT_PTR CALLBACK ProcDlgSetTimeout(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
     return FALSE;
 }
 
+// Called by message handlers
+void Lock(HWND hWnd)
+{
+    if (g_bScreenshot)
+    {
+        int width = GetSystemMetrics(SM_CXSCREEN);
+        int height = GetSystemMetrics(SM_CYSCREEN);
+        HDC hdcDesktop = GetDC(0);
+        if (g_hdcScreen == 0)
+        {
+            g_hdcScreen = CreateCompatibleDC(hdcDesktop);
+        }
+        if (g_hbmpScreen == 0)
+        {
+            g_hbmpScreen = CreateCompatibleBitmap(hdcDesktop, width, height);
+            SelectObject(g_hdcScreen, g_hbmpScreen);
+        }
+        BitBlt(g_hdcScreen, 0, 0, width, height, GetDC(0), 0, 0, SRCCOPY);
+    }
+    ShowCursor(FALSE);
+    ShowWindow(hWnd, SW_SHOW);
+    g_enumWindowState = Show;
+}
+
+void Unlock(HWND hWnd)
+{
+    ShowCursor(TRUE);
+    ShowWindow(hWnd, SW_HIDE);
+    g_enumWindowState = Hidden;
+}
+
 // Message handlers
 void OnInitDialog(HWND hWnd, WPARAM wParam, LPARAM lParam)
 {
@@ -359,10 +395,7 @@ void OnInitDialog(HWND hWnd, WPARAM wParam, LPARAM lParam)
     // Hide window when necessary
     if (g_bHideImmediately)
     {
-        ShowCursor(FALSE);
-        SetForegroundWindow(hWnd);
-        ShowWindow(hWnd, SW_SHOW);
-        g_enumWindowState = Show;
+        Lock(hWnd);
     }
     else
     {
@@ -403,9 +436,25 @@ void OnPaint(HWND hWnd, WPARAM wParam, LPARAM lParam)
     PAINTSTRUCT stPS;
     BeginPaint(hWnd, &stPS);
 
-    // Fill black
-    SelectObject(stPS.hdc, GetStockObject(BLACK_BRUSH));
-    Rectangle(stPS.hdc, 0, 0, 1920, 1280);
+    if (!g_bScreenshot) // Fill black
+    {
+        SelectObject(stPS.hdc, GetStockObject(BLACK_BRUSH));
+        Rectangle(stPS.hdc, 0, 0, 1920, 1280);
+    }
+    else
+    {
+        SYSTEMTIME stTime;
+        GetLocalTime(&stTime);
+        if (stTime.wHour >= 8 && stTime.wHour <= 12)
+        {
+            SelectObject(stPS.hdc, GetStockObject(BLACK_BRUSH));
+            Rectangle(stPS.hdc, 0, 0, 1920, 1280);
+        }
+        else
+        {
+            BitBlt(stPS.hdc, 0, 0, 1920, 1280, g_hdcScreen, 0, 0, SRCCOPY);
+        }
+    }
 
     EndPaint(hWnd, &stPS);
 }
@@ -427,10 +476,7 @@ void OnTimer(HWND hWnd, WPARAM wParam, LPARAM lParam)
         DWORD dwTime = GetTickCount();
         if (dwTime - dwLastInput > g_uTimeout * 1000 && !g_bDisableAutoLock)
         {
-            ShowCursor(FALSE);
-            SetForegroundWindow(hWnd);
-            ShowWindow(hWnd, SW_SHOW);
-            g_enumWindowState = Show;
+            Lock(hWnd);
         }
     }
     else
@@ -494,9 +540,7 @@ void OnKeyDown(HWND hWnd, WPARAM wParam, LPARAM lParam)
             // Password match
             if (strcmp(digestHex, szPasswordHash) == 0)
             {
-                ShowCursor(TRUE);
-                ShowWindow(hWnd, SW_HIDE);
-                g_enumWindowState = Hidden;
+                Unlock(hWnd);
                 return;
             }
         }
@@ -509,9 +553,7 @@ void OnKeyDown(HWND hWnd, WPARAM wParam, LPARAM lParam)
         buf[7]  == 'L' && buf[6]  == 'I' && buf[5]  == 'S' &&
         buf[4]  == 'T' && buf[3]  == 'E' && buf[2]  == 'N' && buf[1] == 'E' && buf[0] == 'R')
     {
-        ShowCursor(TRUE);
-        ShowWindow(hWnd, SW_HIDE);
-        g_enumWindowState = Hidden;
+        Unlock(hWnd);
     }
 #endif
 }
@@ -520,10 +562,7 @@ void OnHotKey(HWND hWnd, WPARAM wParam, LPARAM lParam)
 {
     if (g_enumWindowState == Hidden)
     {
-        ShowCursor(FALSE);
-        SetForegroundWindow(hWnd);
-        ShowWindow(hWnd, SW_SHOW);
-        g_enumWindowState = Show;
+        Lock(hWnd);
     }
 }
 
@@ -531,9 +570,13 @@ void OnCommand(HWND hWnd, WPARAM wParam, LPARAM lParam)
 {
     if (wParam == IDM_LOCK_NOW)
     {
-        ShowCursor(FALSE);
-        ShowWindow(hWnd, SW_SHOW);
-        g_enumWindowState = Show;
+        Lock(hWnd);
+    }
+    if (wParam == IDM_SCREENSHOT)
+    {
+        CheckMenuItem(g_hTrayMenu, IDM_SCREENSHOT, MF_BYCOMMAND | 
+            (!g_bScreenshot ? MF_CHECKED : MF_UNCHECKED));
+        g_bScreenshot = !g_bScreenshot;
     }
     if (wParam == IDM_DISABLE)
     {
