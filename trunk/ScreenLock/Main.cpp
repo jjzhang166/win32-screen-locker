@@ -15,8 +15,8 @@ bool g_bHideImmediately = false;
 bool g_bSecretMode = false;
 
 // Global state
-bool g_bDisableAutoLock = false;
-bool g_bScreenshot = false;
+bool g_bAutoLock = true;
+enum enumMode { Black, Screenshot } g_enumMode = Black;
 unsigned int g_uTimeout = 60;
 
 // Screenshot
@@ -335,7 +335,7 @@ INT_PTR CALLBACK ProcDlgSetTimeout(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 // Called by message handlers
 void Lock(HWND hWnd)
 {
-    if (g_bScreenshot)
+    if (g_enumMode == Screenshot)
     {
         int width = GetSystemMetrics(SM_CXSCREEN);
         int height = GetSystemMetrics(SM_CYSCREEN);
@@ -377,6 +377,10 @@ void OnInitDialog(HWND hWnd, WPARAM wParam, LPARAM lParam)
         // Load tray icon menu
         g_hTrayMenu = LoadMenu(g_hInstance, MAKEINTRESOURCE(IDM_TRAY)); 
         g_hTrayMenu = GetSubMenu(g_hTrayMenu, 0);
+
+        // Init tray icon menu
+        CheckMenuRadioItem(g_hTrayMenu, IDM_BLACK_SCREEN, IDM_SCREENSHOT, 
+            IDM_BLACK_SCREEN, MF_BYCOMMAND);
 
         // Create tray icon
         nti.hIcon = LoadIcon(g_hInstance, MAKEINTRESOURCE(ICO_MAIN)); 
@@ -436,12 +440,12 @@ void OnPaint(HWND hWnd, WPARAM wParam, LPARAM lParam)
     PAINTSTRUCT stPS;
     BeginPaint(hWnd, &stPS);
 
-    if (!g_bScreenshot) // Fill black
+    if (g_enumMode == Black) // Fill black
     {
         SelectObject(stPS.hdc, GetStockObject(BLACK_BRUSH));
         Rectangle(stPS.hdc, 0, 0, 1920, 1280);
     }
-    else
+    else if (g_enumMode == Screenshot)
     {
         SYSTEMTIME stTime;
         GetLocalTime(&stTime);
@@ -474,7 +478,7 @@ void OnTimer(HWND hWnd, WPARAM wParam, LPARAM lParam)
 
         // Display window when it's idle for one minute
         DWORD dwTime = GetTickCount();
-        if (dwTime - dwLastInput > g_uTimeout * 1000 && !g_bDisableAutoLock)
+        if (dwTime - dwLastInput > g_uTimeout * 1000 && g_bAutoLock)
         {
             Lock(hWnd);
         }
@@ -573,17 +577,23 @@ void OnCommand(HWND hWnd, WPARAM wParam, LPARAM lParam)
     {
         Lock(hWnd);
     }
+    else if (wParam == IDM_BLACK_SCREEN)
+    {
+        CheckMenuRadioItem(g_hTrayMenu, IDM_BLACK_SCREEN, IDM_SCREENSHOT, 
+            IDM_BLACK_SCREEN, MF_BYCOMMAND);
+        g_enumMode = Black;
+    }
     if (wParam == IDM_SCREENSHOT)
     {
-        CheckMenuItem(g_hTrayMenu, IDM_SCREENSHOT, MF_BYCOMMAND | 
-            (!g_bScreenshot ? MF_CHECKED : MF_UNCHECKED));
-        g_bScreenshot = !g_bScreenshot;
+        CheckMenuRadioItem(g_hTrayMenu, IDM_BLACK_SCREEN, IDM_SCREENSHOT, 
+            IDM_SCREENSHOT, MF_BYCOMMAND);
+        g_enumMode = Screenshot;
     }
-    if (wParam == IDM_DISABLE)
+    if (wParam == IDM_AUTO_LOCK)
     {
-        CheckMenuItem(g_hTrayMenu, IDM_DISABLE, MF_BYCOMMAND | 
-            (!g_bDisableAutoLock ? MF_CHECKED : MF_UNCHECKED));
-        g_bDisableAutoLock = !g_bDisableAutoLock;
+        CheckMenuItem(g_hTrayMenu, IDM_AUTO_LOCK, MF_BYCOMMAND | 
+            (!g_bAutoLock ? MF_CHECKED : MF_UNCHECKED));
+        g_bAutoLock = !g_bAutoLock;
     }
     else if (wParam == IDM_SET_PASSWORD)
     {
