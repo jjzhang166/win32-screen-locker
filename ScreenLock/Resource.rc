@@ -22,6 +22,8 @@ IDM_TRAY MENU
         MENUITEM "Auto Lock", IDM_AUTO_LOCK, CHECKED
         MENUITEM SEPARATOR
         MENUITEM "Use Black Screen", IDM_BLACK_SCREEN
+        MENUITEM "Use Tranparent Window", IDM_TRANSPARENT
+        MENUITEM "Use 50% Tranparent Window", IDM_TRANSPARENT_50
         MENUITEM "Use Screenshot", IDM_SCREENSHOT
         MENUITEM SEPARATOR
         MENUITEM "Set Password", IDM_SET_PASSWORD

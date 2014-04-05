@@ -16,7 +16,7 @@ bool g_bSecretMode = false;
 
 // Global state
 bool g_bAutoLock = true;
-enum enumMode { Black, Screenshot } g_enumMode = Black;
+enum enumMode { Black, Transparent, Transparent50, Screenshot } g_enumMode = Black;
 unsigned int g_uTimeout = 60;
 
 // Screenshot
@@ -351,6 +351,18 @@ void Lock(HWND hWnd)
         }
         BitBlt(g_hdcScreen, 0, 0, width, height, GetDC(0), 0, 0, SRCCOPY);
     }
+    else if (g_enumMode == Transparent)
+    {
+        SetLayeredWindowAttributes(hWnd, RGB(0, 0, 0), 1, LWA_ALPHA);
+    }
+    else if (g_enumMode == Transparent50)
+    {
+        SetLayeredWindowAttributes(hWnd, RGB(0, 0, 0), 128, LWA_ALPHA);
+    }
+    else
+    {
+        SetLayeredWindowAttributes(hWnd, RGB(0, 0, 0), 255, LWA_ALPHA);
+    }
     ShowCursor(FALSE);
     ShowWindow(hWnd, SW_SHOW);
     g_enumWindowState = Show;
@@ -440,7 +452,9 @@ void OnPaint(HWND hWnd, WPARAM wParam, LPARAM lParam)
     PAINTSTRUCT stPS;
     BeginPaint(hWnd, &stPS);
 
-    if (g_enumMode == Black) // Fill black
+    if (g_enumMode == Black || 
+        g_enumMode == Transparent || 
+        g_enumMode == Transparent50) // Fill black
     {
         SelectObject(stPS.hdc, GetStockObject(BLACK_BRUSH));
         Rectangle(stPS.hdc, 0, 0, 1920, 1280);
@@ -582,6 +596,18 @@ void OnCommand(HWND hWnd, WPARAM wParam, LPARAM lParam)
         CheckMenuRadioItem(g_hTrayMenu, IDM_BLACK_SCREEN, IDM_SCREENSHOT, 
             IDM_BLACK_SCREEN, MF_BYCOMMAND);
         g_enumMode = Black;
+    }
+    else if (wParam == IDM_TRANSPARENT)
+    {
+        CheckMenuRadioItem(g_hTrayMenu, IDM_BLACK_SCREEN, IDM_SCREENSHOT, 
+            IDM_TRANSPARENT, MF_BYCOMMAND);
+        g_enumMode = Transparent;
+    }
+    else if (wParam == IDM_TRANSPARENT_50)
+    {
+        CheckMenuRadioItem(g_hTrayMenu, IDM_BLACK_SCREEN, IDM_SCREENSHOT, 
+            IDM_TRANSPARENT_50, MF_BYCOMMAND);
+        g_enumMode = Transparent50;
     }
     if (wParam == IDM_SCREENSHOT)
     {
@@ -728,7 +754,8 @@ int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR lpCmdLine, int nCmdS
     }
 
     // Display the window
-    CreateDialogParam(g_hInstance, TEXT("DLG_MAIN"), NULL, ProcDlgMain, 0);
+    HWND hWnd = CreateDialogParam(g_hInstance, TEXT("DLG_MAIN"), NULL, ProcDlgMain, 0);
+    SetWindowLong(hWnd, GWL_EXSTYLE, GetWindowLong(hWnd, GWL_STYLE) | WS_EX_LAYERED);
 
     // Message Loop
     while (GetMessage(&stMsg, NULL, 0, 0) != 0)
