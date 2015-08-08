@@ -13,7 +13,7 @@ When the desktop is idle for 1 minute (by default), the screen is locked and bec
 
 **Note: The user is still able to press Ctrl + Alt + Delete and then restart the computer!**
 
-##### Commandline Help #####
+### Commandline Help ###
 
 ```
 ScreenLock.exe [-h] [-i] [-s]
@@ -23,7 +23,7 @@ ScreenLock.exe [-h] [-i] [-s]
 -s: Secret mode (do not display tray icon).
 ```
 
-##### Background Information #####
+### Background Information ###
 
 In some particular circumstances, e.g., in the computer room of a university, we may want our application kept on top of all other windows, until the correct password is entered. Another example is that, we want to lock the desktop when it's idle for some time, however, we do not want the welcome screen to be displayed, and we do not wish to set a password for the current administrator.
 
